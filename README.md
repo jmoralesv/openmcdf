@@ -65,7 +65,7 @@ CompoundFile.ShrinkCompoundFile("MultipleStorage_Deleted_Compress.cfs");
 ```
 
 OLE Properties handling for DocumentSummaryInfo and SummaryInfo streams  
-is now available via extension methods **_(beta - api subjected to changes)_**
+is now available via extension methods ***(experimental - api subjected to changes)***
 
 ```C#
 PropertySetStream mgr = ((CFStream)target).AsOLEProperties();

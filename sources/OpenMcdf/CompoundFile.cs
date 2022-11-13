@@ -221,24 +221,24 @@ namespace OpenMcdf
         ///     
         /// </code>
         /// </example>
-        public CompoundFile()
+        public CompoundFile(): this(CFSVersion.Ver_3,CFSConfiguration.Default)
         {
 
-            this.header = new Header();
-            this.sectorRecycle = false;
+            //this.header = new Header();
+            //this.sectorRecycle = false;
 
-            this.sectors.OnVer3SizeLimitReached += new Ver3SizeLimitReached(OnSizeLimitReached);
+            ////this.sectors.OnVer3SizeLimitReached += new Ver3SizeLimitReached(OnSizeLimitReached);
 
-            DIFAT_SECTOR_FAT_ENTRIES_COUNT = (GetSectorSize() / 4) - 1;
-            FAT_SECTOR_ENTRIES_COUNT = (GetSectorSize() / 4);
+            //DIFAT_SECTOR_FAT_ENTRIES_COUNT = (GetSectorSize() / 4) - 1;
+            //FAT_SECTOR_ENTRIES_COUNT = (GetSectorSize() / 4);
 
-            //Root -- 
-            IDirectoryEntry de = DirectoryEntry.New("Root Entry", StgType.StgRoot, directoryEntries);
-            rootStorage = new CFStorage(this, de);
-            rootStorage.DirEntry.StgType = StgType.StgRoot;
-            rootStorage.DirEntry.StgColor = StgColor.Black;
+            ////Root -- 
+            //IDirectoryEntry de = DirectoryEntry.New("Root Entry", StgType.StgRoot, directoryEntries);
+            //rootStorage = new CFStorage(this, de);
+            //rootStorage.DirEntry.StgType = StgType.StgRoot;
+            //rootStorage.DirEntry.StgColor = StgColor.Black;
 
-            //this.InsertNewDirectoryEntry(rootStorage.DirEntry);
+            ////this.InsertNewDirectoryEntry(rootStorage.DirEntry);
         }
 
         void OnSizeLimitReached()
@@ -292,6 +292,10 @@ namespace OpenMcdf
             eraseFreeSectors = configFlags.HasFlag(CFSConfiguration.EraseFreeSectors);
 #endif
             this.header = new Header((ushort)cfsVersion);
+
+            if (cfsVersion == CFSVersion.Ver_4)
+                this.sectors.OnVer3SizeLimitReached += new Ver3SizeLimitReached(OnSizeLimitReached);
+
             this.sectorRecycle = sectorRecycle;
 
 
@@ -1409,15 +1413,15 @@ namespace OpenMcdf
 
                 byte[] nextDIFATSectorBuffer = new byte[4];
 
-               
+
 
                 int i = 0;
-                
+
                 while (result.Count < header.FATSectorsNumber)
                 {
                     difatStream.Read(nextDIFATSectorBuffer, 0, 4);
                     nextSecID = BitConverter.ToInt32(nextDIFATSectorBuffer, 0);
-                    
+
                     EnsureUniqueSectorIndex(nextSecID, processedSectors);
 
                     Sector s = sectors[nextSecID] as Sector;
@@ -1434,7 +1438,7 @@ namespace OpenMcdf
 
                     //difatStream.Read(nextDIFATSectorBuffer, 0, 4);
                     //nextSecID = BitConverter.ToInt32(nextDIFATSectorBuffer, 0);
-                    
+
 
                     if (difatStream.Position == ((GetSectorSize() - 4) + i * GetSectorSize()))
                     {
@@ -1645,6 +1649,13 @@ namespace OpenMcdf
             directoryEntries[sid].Right = null;
             directoryEntries[sid].Parent = null;
             directoryEntries[sid].StgType = StgType.StgInvalid;
+            directoryEntries[sid].StartSetc = DirectoryEntry.ZERO;
+            directoryEntries[sid].StorageCLSID = Guid.Empty;
+            directoryEntries[sid].Size = 0;
+            directoryEntries[sid].StateBits = 0;
+            directoryEntries[sid].StgColor = StgColor.Red;
+            directoryEntries[sid].CreationDate = new byte[8];
+            directoryEntries[sid].ModifyDate = new byte[8];
         }
 
 
@@ -2409,7 +2420,7 @@ namespace OpenMcdf
 
             IDirectoryEntry de = cFStream.DirEntry;
 
-            count = (int)Math.Min(de.Size - offset, count);
+            count = (int)Math.Min((long)(buffer.Length - offset), (long)count);
 
             StreamView sView = null;
 
@@ -2517,7 +2528,7 @@ namespace OpenMcdf
                 throw new CFDisposedException("Compound File closed: cannot access data");
             if (sid < 0)
                 throw new CFException("Invalid SID");
-            Guid g = new Guid("00000000000000000000000000000000");
+            Guid g = Guid.Empty;
             //find first storage containing a non-zero CLSID before SID in directory structure
             for (int i = sid - 1; i >= 0; i--)
             {
@@ -2545,9 +2556,7 @@ namespace OpenMcdf
             if (sid >= directoryEntries.Count)
                 throw new CFException("Invalid SID of the directory entry to remove");
 
-            //Random r = new Random();
-            directoryEntries[sid].SetEntryName("_DELETED_NAME_" + sid.ToString());
-            directoryEntries[sid].StgType = StgType.StgInvalid;
+            ResetDirectoryEntry(sid);
         }
 
         internal void FreeAssociatedData(int sid)

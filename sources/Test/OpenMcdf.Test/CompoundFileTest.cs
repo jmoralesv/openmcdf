@@ -911,7 +911,7 @@ namespace OpenMcdf.Test
             String storageName = "MyStorage";
             String streamName = "MyStream";
             int BUFFER_SIZE = 800 * Mb;
-            int iterationCount = 3;
+            int iterationCount = 1;
             int streamCount = 3;
 
             CompoundFile compoundFileInit = new CompoundFile(CFSVersion.Ver_4, CFSConfiguration.Default);
@@ -960,7 +960,7 @@ namespace OpenMcdf.Test
             String storageName = "MyStorage";
             String streamName = "MyStream";
             int BUFFER_SIZE = 800 * Mb;
-            int iterationCount = 6;
+            int iterationCount = 1;
             int streamCount = 1;
 
             CompoundFile compoundFile = new CompoundFile(CFSVersion.Ver_4, CFSConfiguration.Default);
@@ -1060,6 +1060,45 @@ namespace OpenMcdf.Test
         }
 
         [TestMethod]
+        public void Test_FIX_GH_83()
+        {
+            try
+            {
+                byte[] bigDataBuffer = Helpers.GetBuffer(1024 * 1024 * 260);
+
+                using (FileStream fTest = new FileStream("BigFile.data", FileMode.Create))
+                {
+
+                    fTest.Write(bigDataBuffer, 0, 1024 * 1024 * 260);
+                    fTest.Flush();
+                    fTest.Close();
+
+                    var f = new CompoundFile();
+                    var cfStream = f.RootStorage.AddStream("NewStream");
+                    using (FileStream fs = new FileStream("BigFile.data", FileMode.Open))
+                    {
+                        cfStream.CopyFrom(fs);
+                    }
+                    f.Save("BigFile.cfs");
+                    f.Close();
+
+                }
+            }
+            catch (Exception e)
+            {
+                Assert.Fail();
+            }
+            finally
+            {
+                if (File.Exists("BigFile.data"))
+                    File.Delete("BigFile.data");
+
+                if (File.Exists("BigFile.cfs"))
+                    File.Delete("BigFile.cfs");
+            }
+        }
+
+        [TestMethod]
         [ExpectedException(typeof(CFCorruptedFileException))]
         public void Test_CorruptedSectorChain_Doc()
         {
@@ -1075,6 +1114,26 @@ namespace OpenMcdf.Test
             var f = new CompoundFile("corrupted-sector-chain.cfs");
 
             f.Close();
+        }
+
+        [TestMethod]
+        public void Test_WRONG_CORRUPTED_EXCEPTION()
+        {
+            var cf = new CompoundFile();
+
+            for (int i = 0; i < 100; i++)
+            {
+                cf.RootStorage.AddStream("Stream" + i).SetData(Helpers.GetBuffer(100000, 0xAA));
+            }
+
+            cf.RootStorage.AddStream("BigStream").SetData(Helpers.GetBuffer(5250000, 0xAA));
+
+            using (var stream = new MemoryStream())
+            {
+                cf.Save(stream);
+            }
+
+            cf.Close();
         }
 
         [TestMethod]
@@ -1120,5 +1179,57 @@ namespace OpenMcdf.Test
         //    f.Save("Astorage.cfs");
         //}
 
+        [TestMethod]
+        public void Test_FIX_BUG_90_CompoundFile_Delete_Storages()
+        {
+            using (var compoundFile = new CompoundFile())
+            {
+                var root = compoundFile.RootStorage;
+                var storageNames = new HashSet<string>();
+
+                // add 99 storages to root
+                for (int i = 1; i <= 99; i++)
+                {
+                    var name = "Storage " + i;
+                    root.AddStorage(name);
+                    storageNames.Add(name);
+                }
+
+                // remove storages until tree becomes unbalanced and its Root changes
+                var rootChild = root.DirEntry.Child;
+                var newChild = rootChild;
+                var j = 1;
+                while (newChild == rootChild && j <= 99)
+                {
+                    var name = "Storage " + j;
+                    root.Delete(name);
+                    storageNames.Remove(name);
+                    newChild = ((DirectoryEntry)(root.Children.Root)).SID; // stop as soon as root.Children has a new Root
+                    j++;
+                }
+
+                // check if all remaining storages are still there
+                foreach (var storageName in storageNames)
+                {
+                    Assert.IsTrue(root.TryGetStorage(storageName, out var storage)); // <- no problem here
+                }
+
+                // write CompundFile into MemoryStream... 
+                using (var memStream = new MemoryStream())
+                {
+                    compoundFile.Save(memStream);
+
+                    // ....and read new CompundFile from that stream
+                    using (var newCf = new CompoundFile(memStream))
+                    {
+                        // check if all storages can be found in to copied CompundFile
+                        foreach (var storageName in storageNames)
+                        {
+                            Assert.IsTrue(newCf.RootStorage.TryGetStorage(storageName, out var storage)); //<- we will see some missing storages here
+                        }
+                    }
+                }
+            }
+        }
     }
 }
