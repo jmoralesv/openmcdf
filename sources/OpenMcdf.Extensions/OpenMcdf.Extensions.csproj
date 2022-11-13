@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-     <TargetFrameworks>netstandard2.0;net40</TargetFrameworks>
+     <TargetFrameworks>netstandard2.0;net462</TargetFrameworks>
     <Configurations>Debug;Release</Configurations>
     <SignAssembly>true</SignAssembly>
     <!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
@@ -76,14 +76,8 @@
     <ProjectReference Include="..\OpenMcdf\OpenMcdf.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\icon.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\icon.png" Pack="true" PackagePath="\" />
     <None Include="OpenMcdf.snk" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
