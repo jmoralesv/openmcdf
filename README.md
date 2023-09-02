@@ -8,7 +8,7 @@ OpenMCDF is a 100% .net / C# component that allows developers to manipulate [Mic
 
 Compound file includes multiple streams of information (document summary, user data) in a single container.
 
-This file format is used under the hood by a lot of applications: all the documents created by Microsoft Office until the 2007 product release are structured storage files. Windows thumbnails cache files (thumbs.db) are compound documents as well as .msg Outlook messages. Visual Studio .suo files (solution options) are compound files and a lot of audio/video editing tools save project file in a compound container.
+This file format is used under the hood by a lot of applications: all the documents created by Microsoft Office until the 2007 product release are structured storage files. Windows thumbnails cache files (thumbs.db) are compound documents as well as .msg Outlook messages. Visual Studio .suo files (solution options) are compound files and a lot of audio/video editing tools save project file in a compound container (*.aaf files for example).
 
 OpenMcdf supports read/write operations on streams and storages and traversal of structures tree. It supports version 3 and 4 of the specifications, uses lazy loading wherever possible to reduce memory usage and offer an intuitive API to work with structured files.
 
@@ -75,7 +75,7 @@ for (int i = 0; i < mgr.PropertySet0.NumProperties; i++)
   ...
 ```
 
-OpenMcdf runs happily on the [Mono](http://www.mono-project.com/) platform and supports now **.NET Standard 2.0**
+OpenMcdf runs happily on the [Mono](http://www.mono-project.com/) platform and targets **netstandard 2.0** to allow maximum client compatibility AND .net framework 4 for legacy implementations.
 
 **.NET Framework 3.5 support**
 
