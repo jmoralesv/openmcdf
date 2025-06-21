@@ -84,6 +84,8 @@ foreach (OleProperty prop in co.Properties)
 
 OpenMcdf runs happily on the [Mono](http://www.mono-project.com/) platform and multi-targets [**netstandard2.0**](https://learn.microsoft.com/en-us/dotnet/standard/net-standard?tabs=net-standard-2-0) and **net8.0** to maximize client compatibility and support modern dotnet features.
 
-**.NET Framework 3.5 support**
+## .NET Framework 3.5 support
 
-This repository supports .NET Framework 3.5, which was dropped in the parent repo.
+As of June 21, 2025 this repository drops support for .NET Framework 3.5, as the recent changes in the upstream repository make it impossible to maintain compatibility with .NET Framework 3.5 without adding a lot of complexity to the source code and the build process.
+
+The last version of OpenMcdf that supports .NET Framework 3.5 is now in the history of this repository.
