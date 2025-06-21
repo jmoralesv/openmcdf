@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenMcdf\OpenMcdf.csproj" />
+    <ProjectReference Include="..\StructuredStorage\StructuredStorage.csproj" />
+  </ItemGroup>
+
+</Project>

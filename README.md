@@ -1,81 +1,88 @@
-[![Build Status](https://fb8.visualstudio.com/Openmcdf/_apis/build/status/Openmcdf-CI?branchName=master)](https://fb8.visualstudio.com/Openmcdf/_build/latest?definitionId=1&branchName=master)
+![GitHub Actions](https://github.com/ironfede/openmcdf/actions/workflows/dotnet-desktop.yml/badge.svg)
+![CodeQL](https://github.com/ironfede/openmcdf/actions/workflows/codeql.yml/badge.svg)
+[![OpenMcdf NuGet](https://img.shields.io/nuget/v/OpenMcdf?label=OpenMcdf%20NuGet)](https://www.nuget.org/packages/OpenMcdf)
+[![OpenMcdf.Ole NuGet](https://img.shields.io/nuget/vpre/OpenMcdf.Ole?label=OpenMcdf.Ole%20NuGet)](https://www.nuget.org/packages/OpenMcdf.Ole)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/OpenMcdf)](https://www.nuget.org/packages/OpenMcdf)
 
-# openmcdf
+# OpenMcdf
 
-**Structured Storage .net component - pure C#**
+OpenMcdf is a fully .NET / C# library to manipulate [Compound File Binary File Format](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cfb/53989ce4-7b05-4f8d-829b-d08d6148375b) files, also known as [Structured Storage](https://learn.microsoft.com/en-us/windows/win32/stg/structured-storage-start-page). 
 
-OpenMCDF is a 100% .net / C# component that allows developers to manipulate [Microsoft Compound Document Files](https://msdn.microsoft.com/en-us/library/dd942138.aspx) (also known as OLE structured storage).
+Compound files include multiple streams of information (document summary, user data) in a single container, and is used as the bases for many different file formats:
+- Microsoft Office (.doc, .xls, .ppt)
+- Windows thumbnails cache files (thumbs.db) 
+- Outlook messages (.msg)
+- Visual Studio Solution Options (.suo) 
+- Advanced Authoring Format (.aaf)
 
-Compound file includes multiple streams of information (document summary, user data) in a single container.
+OpenMcdf v3 has a rewritten API and supports:
+- An idiomatic dotnet API and exception hierarchy
+- Fast and efficient enumeration and manipulation of storages and streams
+- File sizes up to 16 TB (using major format version 4 with 4096 byte sectors)
+- Transactions (i.e. commit and/or revert)
+- Consolidation (i.e. reclamation of space by removing free sectors)
+- Nullable attributes
 
-This file format is used under the hood by a lot of applications: all the documents created by Microsoft Office until the 2007 product release are structured storage files. Windows thumbnails cache files (thumbs.db) are compound documents as well as .msg Outlook messages. Visual Studio .suo files (solution options) are compound files and a lot of audio/video editing tools save project file in a compound container (*.aaf files for example).
+Limitations:
+- No support for red-black tree balancing (directory entries are stored in a tree, but are not balanced. i.e. trees are "all-black")
+- No support for single writer, multiple readers
 
-OpenMcdf supports read/write operations on streams and storages and traversal of structures tree. It supports version 3 and 4 of the specifications, uses lazy loading wherever possible to reduce memory usage and offer an intuitive API to work with structured files.
+## Getting started
 
-It's very easy to **create a new compound file**
+To create a new compound file:
 
 ```C#
 byte[] b = new byte[10000];
 
-CompoundFile cf = new CompoundFile();
-CFStream myStream = cf.RootStorage.AddStream("MyStream");
-
-myStream.SetData(b);
-cf.Save("MyCompoundFile.cfs");
-cf.Close();
+using var root = RootStorage.Create("test.cfb");
+using CfbStream stream = root.CreateStream("MyStream");
+stream.Write(b, 0, b.Length);
 ```
 
-You can **open an existing one**, an excel workbook (.xls) and use its main data stream
+To open an Excel workbook (.xls) and access its main data stream:
 
 ```C#
-//A xls file should have a Workbook stream
-String filename = "report.xls";
-CompoundFile cf = new CompoundFile(filename);
-CFStream foundStream = cf.RootStorage.GetStream("Workbook");
-byte[] temp = foundStream.GetData();
-//do something with temp
-cf.Close();
+using var root = RootStorage.OpenRead("report.xls");
+using CfbStream workbookStream = root.OpenStream("Workbook");
 ```
 
-Adding **storage and stream items** is just as easy...
+To create or delete storages and streams:
 
 ```C#
-CompoundFile cf = new CompoundFile();
-CFStorage st = cf.RootStorage.AddStorage("MyStorage");
-CFStream sm = st.AddStream("MyStream");
+using var root = RootStorage.Create("test.cfb");
+root.CreateStorage("MyStorage");
+root.CreateStream("MyStream");
+root.Delete("MyStream");
 ```
 
-...as removing them
+For transacted storages, changes can either be committed or reverted:
 
 ```C#
-cf.RootStorage.Delete("AStream"); // AStream item is assumed to exist.
+using var root = RootStorage.Create("test.cfb", StorageModeFlags.Transacted);
+root.Commit();
+//
+root.Revert();
 ```
 
-Call _commit()_ method when you need to persist changes to the underlying stream
+A root storage can be consolidated to reduce its on-disk size:
 
 ```C#
-cf.RootStorage.AddStream("MyStream").SetData(buffer);
-cf.Commit();
+root.Flush(consolidate: true);
 ```
 
-If you need to compress a compound file, you can purge its unused space
+## Object Linking and Embedding (OLE) Property Set Data Structures
+
+Support for reading and writing [OLE Properties](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/bf7aeae8-c47a-4939-9f45-700158dac3bc) is available via the [OpenMcdf.Ole](https://www.nuget.org/packages/OpenMcdf.Ole) package. However, ***the API is experimental and subject to change***.
 
 ```C#
-CompoundFile.ShrinkCompoundFile("MultipleStorage_Deleted_Compress.cfs");
-```
-
-OLE Properties handling for DocumentSummaryInfo and SummaryInfo streams  
-is now available via extension methods ***(experimental - api subjected to changes)***
-
-```C#
-PropertySetStream mgr = ((CFStream)target).AsOLEProperties();
-for (int i = 0; i < mgr.PropertySet0.NumProperties; i++)
+OlePropertiesContainer co = new(stream);
+foreach (OleProperty prop in co.Properties)
 {
-  ITypedPropertyValue p = mgr.PropertySet0.Properties[i];
   ...
+}
 ```
 
-OpenMcdf runs happily on the [Mono](http://www.mono-project.com/) platform and targets **netstandard 2.0** to allow maximum client compatibility AND .net framework 4 for legacy implementations.
+OpenMcdf runs happily on the [Mono](http://www.mono-project.com/) platform and multi-targets [**netstandard2.0**](https://learn.microsoft.com/en-us/dotnet/standard/net-standard?tabs=net-standard-2-0) and **net8.0** to maximize client compatibility and support modern dotnet features.
 
 **.NET Framework 3.5 support**
 

@@ -1,0 +1,41 @@
+<!-- See https://docs.microsoft.com/en-us/dotnet/core/project-sdk/msbuild-props -->
+<Project>
+  <PropertyGroup>
+    <!-- C# 12 is the default for dotnet 8 -->
+    <LangVersion>12</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+  </PropertyGroup>
+
+  <!-- Packaging -->
+  <PropertyGroup>
+    <Version>3.0.1.0</Version>
+    <Authors>ironfede,jeremy-visionaid</Authors>
+    <Copyright>Copyright © 2010-2025, Federico Blaseotto, Jeremy Powell</Copyright>
+    <PackageProjectUrl>https://github.com/ironfede/openmcdf</PackageProjectUrl>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/ironfede/openmcdf</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <PackageLicenseExpression>MPL-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="True" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="True" PackagePath="\" />
+  </ItemGroup>
+
+  <!-- Analysis and warnings-->
+  <PropertyGroup>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Workaround for https://github.com/dotnet/roslyn/issues/41640 -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>
